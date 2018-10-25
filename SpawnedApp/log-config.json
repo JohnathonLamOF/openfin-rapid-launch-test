@@ -1,0 +1,5 @@
+{
+  "targetfile": "dotnetlog.txt",
+  "enabled": true,
+  "minlevel": "trace"
+}

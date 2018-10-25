@@ -15,9 +15,9 @@
         <StackPanel>
             <Separator></Separator>
             <Label>WPF Apps to Spawn:</Label>
-            <TextBox Name="AppCountText" PreviewTextInput="NumberValidationTextBox">20</TextBox>
+            <TextBox Name="AppCountText" PreviewTextInput="NumberValidationTextBox">2</TextBox>
             <Label>Embedded Views to Spawn:</Label>
-            <TextBox Name="EmbeddedViewCountText" PreviewTextInput="NumberValidationTextBox">10</TextBox>
+            <TextBox Name="EmbeddedViewCountText" PreviewTextInput="NumberValidationTextBox">0</TextBox>
             <Label>Launch Delay (ms):</Label>
             <TextBox Name="DelayText" PreviewTextInput="NumberValidationTextBox">500</TextBox>
             <Separator></Separator>

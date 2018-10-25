@@ -29,20 +29,26 @@ namespace RapidLaunch.SpawnedApp
             OpenFinGlobals.RuntimeInstance.Connected += OpenFinRuntime_Connected;
             OpenFinGlobals.RuntimeInstance.Disconnected += OpenFinRuntime_Disconnected;
 
-            OpenFinGlobals.RuntimeInstance.Connect(() =>
+            for (int i = 0; i < 5; i++)
             {
-                if (!string.IsNullOrEmpty(App.OpenFinUuid))
+                OpenFinGlobals.RuntimeInstance.Connect(() =>
                 {
-                    var appToEmbed = OpenFinGlobals.RuntimeInstance.WrapApplication(App.OpenFinUuid);
-                    WebContents.Initialize(OpenFinGlobals.RuntimeInstance.Options, appToEmbed.getWindow());
-                }
-            });
+                    
+                });
+            }
 
             Task.Run(new Action(PingAppLauncherLoop));
         }
 
         private void OpenFinRuntime_Connected(object sender, EventArgs e)
         {
+
+            if (!string.IsNullOrEmpty(App.OpenFinUuid))
+            {
+                var appToEmbed = OpenFinGlobals.RuntimeInstance.WrapApplication(App.OpenFinUuid);
+                WebContents.Initialize(OpenFinGlobals.RuntimeInstance.Options, appToEmbed.getWindow());
+            }
+
             Dispatcher.Invoke(() =>
             {
                 ConnectionStatusText.Text = "OpenFin Connected";

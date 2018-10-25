@@ -32,10 +32,14 @@ namespace RapidLaunch.AppLauncher
             OpenFinGlobals.RuntimeInstance.Connected += OpenFinRuntime_Connected;
             OpenFinGlobals.RuntimeInstance.Disconnected += OpenFinRuntime_Disconnected;
 
-            OpenFinGlobals.RuntimeInstance.Connect(() => 
+            for (var i = 0; i < 100; i++)
             {
+                OpenFinGlobals.RuntimeInstance.Connect(() =>
+                {
 
-            });
+                });
+            }
+            
         }
 
         private void OpenFinRuntime_Connected(object sender, EventArgs e)
