@@ -22,6 +22,7 @@ namespace RapidLaunch.SpawnedApp
     /// </summary>
     public partial class MainWindow : Window
     {
+        private Openfin.Desktop.Application mEmbeddedApplication;
         public MainWindow()
         {
             InitializeComponent();
@@ -29,30 +30,23 @@ namespace RapidLaunch.SpawnedApp
             OpenFinGlobals.RuntimeInstance.Connected += OpenFinRuntime_Connected;
             OpenFinGlobals.RuntimeInstance.Disconnected += OpenFinRuntime_Disconnected;
 
-            for (int i = 0; i < 5; i++)
+            OpenFinGlobals.RuntimeInstance.Connect(() =>
             {
-                OpenFinGlobals.RuntimeInstance.Connect(() =>
+                if (!string.IsNullOrEmpty(App.OpenFinUuid))
                 {
-                    
-                });
-            }
-
-            Task.Run(new Action(PingAppLauncherLoop));
+                    mEmbeddedApplication = OpenFinGlobals.RuntimeInstance.WrapApplication(App.OpenFinUuid);
+                    WebContents.Initialize(OpenFinGlobals.RuntimeInstance.Options, mEmbeddedApplication.getWindow());
+                }
+            });
         }
 
         private void OpenFinRuntime_Connected(object sender, EventArgs e)
         {
-
-            if (!string.IsNullOrEmpty(App.OpenFinUuid))
-            {
-                var appToEmbed = OpenFinGlobals.RuntimeInstance.WrapApplication(App.OpenFinUuid);
-                WebContents.Initialize(OpenFinGlobals.RuntimeInstance.Options, appToEmbed.getWindow());
-            }
-
             Dispatcher.Invoke(() =>
             {
                 ConnectionStatusText.Text = "OpenFin Connected";
                 MainPanel.Background = Brushes.LightGreen;
+                UuidText.Text = $"Uuid: {App.OpenFinUuid}";
             });
         }
 
@@ -72,15 +66,6 @@ namespace RapidLaunch.SpawnedApp
                 }
             });
 
-        }
-
-        private void PingAppLauncherLoop()
-        {
-            while(true)
-            {
-                MessagePublisher.PingAppLauncher();
-                Task.Delay(1000).Wait();
-            }
         }
     }
 }

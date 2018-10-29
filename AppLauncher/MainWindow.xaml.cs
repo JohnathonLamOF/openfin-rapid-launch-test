@@ -1,17 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Diagnostics;
 
 using RapidLaunch.Common;
@@ -23,7 +15,8 @@ namespace RapidLaunch.AppLauncher
     /// </summary>
     public partial class MainWindow : Window
     {
-        List<Process> spawnedProcesses = new List<Process>();
+        private List<Process> spawnedProcesses = new List<Process>();
+        private IMessageBus mMessageBus;
 
         public MainWindow()
         {
@@ -32,14 +25,10 @@ namespace RapidLaunch.AppLauncher
             OpenFinGlobals.RuntimeInstance.Connected += OpenFinRuntime_Connected;
             OpenFinGlobals.RuntimeInstance.Disconnected += OpenFinRuntime_Disconnected;
 
-            for (var i = 0; i < 100; i++)
+            OpenFinGlobals.RuntimeInstance.Connect(() => 
             {
-                OpenFinGlobals.RuntimeInstance.Connect(() =>
-                {
-
-                });
-            }
-            
+                mMessageBus = new MessageBus();
+            });
         }
 
         private void OpenFinRuntime_Connected(object sender, EventArgs e)
@@ -48,6 +37,7 @@ namespace RapidLaunch.AppLauncher
             {
                 ConnectionStatusText.Text = "OpenFin Connected";
                 SpawnButton.IsEnabled = true;
+                SpawnAdHocButton.IsEnabled = true;
                 ArrangeButton.IsEnabled = true;
                 CloseButton.IsEnabled = true;
                 TerminateButton.IsEnabled = true;
@@ -100,36 +90,13 @@ namespace RapidLaunch.AppLauncher
                 .OrderBy(b => rand.Next())
                 .ToArray();
 
-            foreach(var appShouldEmbed in appsShouldEmbed)
+            foreach (var appShouldEmbed in appsShouldEmbed)
             {
                 var tsc = new TaskCompletionSource<Process>();
 
-                if(appShouldEmbed)
+                if (appShouldEmbed)
                 {
-                    var appUuid = Guid.NewGuid().ToString();
-
-                    var appOptions = new Openfin.Desktop.ApplicationOptions(
-                        name: appUuid,
-                        uuid: appUuid,
-                        url: OpenFinGlobals.DefaultAppUrl)
-                    {
-                        NonPersistent = false
-                    };
-
-                    Openfin.Desktop.Application app = null;
-                    app = new Openfin.Desktop.Application(appOptions, OpenFinGlobals.RuntimeInstance.DesktopConnection,
-                        ack =>
-                        {
-                            app.Run(() => 
-                            {
-                                tsc.SetResult(Process.Start(new ProcessStartInfo()
-                                {
-                                    FileName = "SpawnedApp.exe",
-                                    Arguments = appUuid,
-                                    UseShellExecute = false
-                                }));
-                            });
-                        });
+                    tsc = SpawnEmbeddedApp();
                 }
                 else
                 {
@@ -141,12 +108,21 @@ namespace RapidLaunch.AppLauncher
                 }
 
                 var spawnedProcess = tsc.Task.Result;
-                
+
                 spawnedProcesses.Add(spawnedProcess);
                 spawnedProcess.Exited += SpawnedProcess_Exited;
 
                 Task.Delay(delay).Wait();
             }
+        }
+
+        private void AdhocSpawnButton_Click(object sender, RoutedEventArgs e)
+        {
+            var tsc = SpawnEmbeddedApp();
+            var spawnedProcess = tsc.Task.Result;
+
+            spawnedProcesses.Add(spawnedProcess);
+            spawnedProcess.Exited += SpawnedProcess_Exited;
         }
 
         [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
@@ -187,5 +163,44 @@ namespace RapidLaunch.AppLauncher
                 spawnedProcesses.Remove(spawnedProcess);
             }
         }
+
+        #region Helpers
+        private TaskCompletionSource<Process> SpawnEmbeddedApp()
+        {
+            var tsc = new TaskCompletionSource<Process>();
+            var appUuid = Guid.NewGuid().ToString();
+
+            var appOptions = new Openfin.Desktop.ApplicationOptions(
+                name: appUuid,
+                uuid: appUuid,
+                url: OpenFinGlobals.DefaultAppUrl)
+            {
+                NonPersistent = false
+            };
+
+            Openfin.Desktop.Application app = null;
+            app = new Openfin.Desktop.Application(appOptions, OpenFinGlobals.RuntimeInstance.DesktopConnection,
+            ack =>
+            {
+                app.Run(null);
+            });
+
+            tsc.SetResult(Process.Start(new ProcessStartInfo()
+            {
+                FileName = "SpawnedApp.exe",
+                Arguments = appUuid,
+                UseShellExecute = false
+            }));
+
+            app.Closed += (s, e) =>
+            {
+                mMessageBus.Publish("sometopic", $"{app.Uuid} is closed");
+            };
+
+            mMessageBus.Publish("sometopic", $"{app.Uuid} is starting...");
+
+            return tsc;
+        }
+        #endregion
     }
 }

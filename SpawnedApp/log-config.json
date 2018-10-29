@@ -1,5 +1,6 @@
 {
-  "targetfile": "dotnetlog.txt",
+  "targetfile": "dotnet.log",
   "enabled": true,
-  "minlevel": "trace"
+  "minlevel": "info",
+  "toconsole": true
 }
